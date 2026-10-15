@@ -1,118 +1,382 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🛒 ShopAI Backend API (NestJS + Prisma + JWT + Gemini AI)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Hệ thống Backend phục vụ ứng dụng thương mại điện tử di động **ShopAI (React Native)**. Dự án được xây dựng theo kiến trúc Enterprise chuẩn mực của NestJS (Controller – Service – Module – Repository Pattern), sử dụng **Prisma ORM** với **SQLite**, hệ thống xác thực bảo mật bằng **JWT Authentication & Passport Guard**, tích hợp **Vệ sĩ AI Gemini Proxy** giấu API Key an toàn trên máy chủ, và tự động sinh tài liệu chuẩn quốc tế với **Swagger / OpenAPI**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 📋 Mục lục
+1. [Tính năng cốt lõi](#-tính-năng-cốt-lõi)
+2. [Cài đặt & Khởi chạy](#-cài-đặt--khởi-chạy)
+3. [Tài liệu API Swagger](#-tài-liệu-api-swagger)
+4. [Chi tiết các API chức năng](#-chi-tiết-các-api-chức-năng)
+   - [1. Trạng thái hệ thống (Health Check)](#1-trạng-thái-hệ-thống-health-check)
+   - [2. Xác thực & Tài khoản (Auth)](#2-xác-thực--tài-khoản-auth)
+   - [3. Danh mục sản phẩm (Products)](#3-danh-mục-sản-phẩm-products)
+   - [4. Đơn hàng & Thanh toán (Orders)](#4-đơn-hàng--thanh-toán-orders)
+   - [5. Trợ lý ảo (AI Chat Proxy)](#5-trợ-lý-ảo-ai-chat-proxy)
+5. [Hướng dẫn kiểm thử nhanh bằng cURL](#-hướng-dẫn-kiểm-thử-nhanh-bằng-curl)
+6. [Cấu trúc mã nguồn](#-cấu-trúc-mã-nguồn)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 🚀 Tính năng cốt lõi
 
+* **Kiến trúc Enterprise chuẩn**: Tách biệt rõ ràng Controller (Tiếp tân), Service (Nghiệp vụ), Module (Đóng gói) và Repository Pattern (Lưu trữ).
+* **Bảo mật dữ liệu đầu vào**: Kích hoạt `ValidationPipe` toàn cục với `class-validator` và `class-transformer` để chặn lọc dữ liệu bẩn và loại bỏ các trường không hợp lệ.
+* **Cơ sở dữ liệu bền vững**: Quản lý dữ liệu qua **Prisma ORM (SQLite)**, dữ liệu đơn hàng và tài khoản không bị mất khi restart server.
+* **Xác thực JWT thật**: Mật khẩu được mã hóa an toàn bằng **bcrypt** (salt rounds 10), cấp token JWT chứa payload chuẩn (`sub`, `email`), bảo vệ endpoint Orders bằng `JwtAuthGuard`.
+* **Chống gian lận đơn hàng (Anti-Tampering)**: Server tự động tra cứu giá thật từ kho dữ liệu và tính lại tổng tiền `serverTotal`. Nếu lệch với giá client gửi lên sẽ ném mã lỗi `400 Bad Request`.
+* **Vệ sĩ AI (Gemini Proxy)**: Ẩn hoàn toàn `GEMINI_API_KEY` ở Backend, App di động chỉ gửi tin nhắn lên server qua `/api/ai/chat`.
+
+---
+
+## 🛠 Cài đặt & Khởi chạy
+
+### 1. Cài đặt dependencies
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
-
+### 2. Cấu hình biến môi trường
+Sao chép file cấu hình mẫu và điền các thông số cần thiết:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
+```
+Nội dung file `.env`:
+```env
+PORT=3000
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+JWT_SECRET=shopai_jwt_super_secret_key_2026_xyz
+JWT_EXPIRES_IN=7d
+DATABASE_URL="file:./dev.db"
 ```
 
-## Run tests
-
+### 3. Đồng bộ Database & Khởi tạo dữ liệu mẫu (Seed)
 ```bash
-# unit tests
-$ npm run test
+# Tạo cấu trúc bảng SQLite và sinh Prisma Client
+npx prisma migrate dev --name init
 
-# e2e tests
-$ npm run test:e2e
+# Nạp tài khoản demo và 20 sản phẩm khởi tạo
+npx prisma db seed
+```
+> **Tài khoản demo mặc định:**
+> * Email: `demo@shopai.com`
+> * Mật khẩu: `123456`
 
-# test coverage
-$ npm run test:cov
+### 4. Khởi chạy Server
+```bash
+# Chế độ phát triển (Watch mode - tự động reload khi sửa code)
+npm run start:dev
+
+# Chế độ Production
+npm run build
+npm run start:prod
+```
+Server sẽ chạy tại: `http://0.0.0.0:3000` (cho phép cả localhost và IP mạng LAN truy cập).
+
+---
+
+## 📖 Tài liệu API Swagger
+
+Tài liệu Swagger UI tương tác trực tiếp được tích hợp sẵn:
+* **Đường dẫn truy cập:** [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+* **Xác thực:** Bạn có thể bấm nút **Authorize** ở góc trên bên phải, nhập `accessToken` nhận được từ API đăng nhập để thử nghiệm trực tiếp các API được bảo vệ (`/api/orders`).
+
+---
+
+## 📡 Chi tiết các API chức năng
+
+### 1. Trạng thái hệ thống (Health Check)
+Dùng để kiểm tra xem server có đang hoạt động hay không (phục vụ đèn báo "Server Online" trên App Mobile).
+
+* **`GET /api/health`**
+  * **Mô tả:** Kiểm tra kết nối máy chủ.
+  * **Headers:** Không yêu cầu.
+  * **Response (200 OK):**
+    ```json
+    {
+      "status": "ok",
+      "timestamp": "2026-10-15T08:00:00.000Z"
+    }
+    ```
+
+---
+
+### 2. Xác thực & Tài khoản (Auth)
+
+* **`POST /api/auth/register`**
+  * **Mô tả:** Đăng ký tài khoản người dùng mới. Mật khẩu được mã hóa tự động bằng bcrypt trước khi lưu DB.
+  * **Body:**
+    ```json
+    {
+      "email": "user@example.com",
+      "password": "password123",
+      "name": "Nguyễn Văn A"
+    }
+    ```
+  * **Response thành công (201 Created):**
+    ```json
+    {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "user": {
+        "id": "uuid-cua-user",
+        "email": "user@example.com",
+        "name": "Nguyễn Văn A"
+      }
+    }
+    ```
+  * **Response lỗi:**
+    * `400 Bad Request`: Email sai định dạng, mật khẩu < 6 ký tự.
+    * `409 Conflict`: Email đã tồn tại trong hệ thống (`"Email đã được đăng ký"`).
+
+* **`POST /api/auth/login`**
+  * **Mô tả:** Đăng nhập bằng email và mật khẩu, trả về `accessToken` JWT.
+  * **Body:**
+    ```json
+    {
+      "email": "demo@shopai.com",
+      "password": "123456"
+    }
+    ```
+  * **Response thành công (200 OK):**
+    ```json
+    {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "user": {
+        "id": "uuid-cua-user",
+        "email": "demo@shopai.com",
+        "name": "Học viên Demo"
+      }
+    }
+    ```
+  * **Response lỗi:**
+    * `401 Unauthorized`: `"Email hoặc mật khẩu không đúng"`.
+
+---
+
+### 3. Danh mục sản phẩm (Products)
+
+* **`GET /api/products`**
+  * **Mô tả:** Lấy danh sách 20 sản phẩm mẫu (danh mục công nghệ) với ID và giá tiền ổn định.
+  * **Response (200 OK):**
+    ```json
+    [
+      {
+        "id": "backend_prod_0",
+        "name": "Sản phẩm từ NestJS Server 0",
+        "price": 1000000,
+        "image": "https://picsum.photos/id/200/400/400"
+      },
+      ...
+    ]
+    ```
+
+* **`GET /api/products/:id`**
+  * **Mô tả:** Lấy thông tin chi tiết của một sản phẩm theo ID.
+  * **Response thành công (200 OK):**
+    ```json
+    {
+      "id": "backend_prod_1",
+      "name": "Sản phẩm từ NestJS Server 1",
+      "price": 1010000,
+      "image": "https://picsum.photos/id/201/400/400"
+    }
+    ```
+  * **Response lỗi (404 Not Found):**
+    ```json
+    {
+      "statusCode": 404,
+      "message": "Không tìm thấy sản phẩm có id = invalid_id",
+      "error": "Not Found"
+    }
+    ```
+
+* **`POST /api/products`**
+  * **Mô tả:** Demo kiểm soát dữ liệu đầu vào thông qua `CreateProductDto`.
+  * **Body mẫu:**
+    ```json
+    {
+      "name": "Bàn phím cơ không dây",
+      "price": 1500000,
+      "image": "https://example.com/keyboard.jpg"
+    }
+    ```
+  * **Response lỗi nếu dữ liệu không hợp lệ (400 Bad Request):**
+    ```json
+    {
+      "statusCode": 400,
+      "message": [
+        "Tên sản phẩm không được để trống",
+        "Giá sản phẩm không được âm",
+        "Ảnh sản phẩm phải là một URL hợp lệ"
+      ],
+      "error": "Bad Request"
+    }
+    ```
+
+---
+
+### 4. Đơn hàng & Thanh toán (Orders)
+> **Lưu ý:** Tất cả các endpoint trong nhóm này đều yêu cầu Header:  
+> `Authorization: Bearer <accessToken>`
+
+* **`POST /api/orders`**
+  * **Mô tả:** Tạo đơn hàng mới. Server tự tính toán lại tổng tiền dựa trên giá gốc của từng sản phẩm trong kho.
+  * **Body:**
+    ```json
+    {
+      "items": [
+        { "productId": "backend_prod_0", "quantity": 2 },
+        { "productId": "backend_prod_1", "quantity": 1 }
+      ],
+      "total": 3010000
+    }
+    ```
+  * **Response thành công (201 Created):**
+    ```json
+    {
+      "id": "ORD-1735689600000",
+      "userId": "uuid-cua-user",
+      "total": 3010000,
+      "status": "PENDING",
+      "createdAt": "2026-10-15T08:00:00.000Z",
+      "items": [
+        {
+          "id": "item-uuid-1",
+          "orderId": "ORD-1735689600000",
+          "productId": "backend_prod_0",
+          "quantity": 2,
+          "price": 1000000
+        },
+        ...
+      ]
+    }
+    ```
+  * **Response lỗi:**
+    * `401 Unauthorized`: Chưa truyền token hoặc token không hợp lệ/hết hạn.
+    * `400 Bad Request`: Tổng tiền gửi lên không khớp với giá server tính toán (`"Tổng tiền không khớp. Server tính 3010000, Client gửi 1000. Vui lòng tải lại giỏ hàng."`).
+
+* **`GET /api/orders`**
+  * **Mô tả:** Lấy danh sách toàn bộ đơn hàng của chính người dùng đang đăng nhập (sắp xếp mới nhất lên đầu).
+  * **Response (200 OK):** Danh sách mảng các đơn hàng.
+
+* **`GET /api/orders/:id`**
+  * **Mô tả:** Xem chi tiết hóa đơn theo mã đơn hàng `orderId`.
+  * **Response (200 OK):** Chi tiết đơn hàng và các mặt hàng trong đơn.
+  * **Response lỗi (404 Not Found):** Nếu không tìm thấy đơn hoặc đơn không thuộc về user hiện tại.
+
+* **`POST /api/orders/:id/pay`**
+  * **Mô tả:** Giả lập thanh toán đơn hàng, cập nhật trạng thái từ `PENDING` sang `PAID` (Idempotent - gọi nhiều lần khi đã `PAID` không gây lỗi).
+  * **Response (200 OK):**
+    ```json
+    {
+      "id": "ORD-1735689600000",
+      "status": "PAID",
+      ...
+    }
+    ```
+
+---
+
+### 5. Trợ lý ảo (AI Chat Proxy)
+
+* **`POST /api/ai/chat`**
+  * **Mô tả:** Proxy gọi Gemini AI (mô hình `gemini-1.5-flash`) kèm ngữ cảnh lịch sử trò chuyện. Đảm bảo an toàn tuyệt đối không lộ API Key ra ngoài phía Mobile.
+  * **Body:**
+    ```json
+    {
+      "message": "Shop có những tai nghe nào tốt dưới 2 triệu?",
+      "history": [
+        { "role": "user", "text": "Xin chào" },
+        { "role": "model", "text": "Chào bạn! Mình có thể giúp gì cho bạn?" }
+      ]
+    }
+    ```
+  * **Response (200 OK):**
+    ```json
+    {
+      "reply": "Chào bạn! Dưới 2 triệu bạn có thể tham khảo tai nghe Sony CH520 hoặc Soundpeats Air4 rất tốt nhé."
+    }
+    ```
+
+---
+
+## 🧪 Hướng dẫn kiểm thử nhanh bằng cURL
+
+### 1. Đăng nhập lấy Token
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@shopai.com","password":"123456"}'
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 2. Đặt hàng kèm Bearer Token
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+curl -X POST http://localhost:3000/api/orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN_O_BUOC_1>" \
+  -d '{"items":[{"productId":"backend_prod_0","quantity":1}],"total":1000000}'
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 3. Xem danh sách đơn hàng của bạn
+```bash
+curl -X GET http://localhost:3000/api/orders \
+  -H "Authorization: Bearer <ACCESS_TOKEN_O_BUOC_1>"
+```
 
-## Observability
+### 4. Giả lập thanh toán đơn hàng
+```bash
+curl -X POST http://localhost:3000/api/orders/<ORDER_ID>/pay \
+  -H "Authorization: Bearer <ACCESS_TOKEN_O_BUOC_1>"
+```
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+### 5. Hỏi đáp với trợ lý AI
+```bash
+curl -X POST http://localhost:3000/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Tư vấn cho mình chuột công thái học"}'
+```
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+---
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+## 📂 Cấu trúc mã nguồn
 
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```text
+shopai-backend/
+├── prisma/
+│   ├── dev.db                  # Database SQLite cục bộ (được gitignore)
+│   ├── schema.prisma           # Định nghĩa cấu trúc các bảng DB (User, Product, Order, OrderItem)
+│   └── seed.ts                 # Script nạp dữ liệu mẫu
+├── src/
+│   ├── main.ts                 # Entrypoint: Pipe, CORS, Swagger, Helmet, Listen 0.0.0.0
+│   ├── app.module.ts           # Root Module liên kết các feature modules
+│   ├── health.controller.ts    # API kiểm tra trạng thái sống của Server
+│   ├── ai/                     # Module Vệ sĩ AI (Proxy Gemini)
+│   │   ├── ai.controller.ts
+│   │   ├── ai.module.ts
+│   │   └── ai.service.ts
+│   ├── auth/                   # Module xác thực người dùng (JWT + Passport)
+│   │   ├── dto/                # LoginDto, RegisterDto
+│   │   ├── auth.controller.ts
+│   │   ├── auth.module.ts
+│   │   ├── auth.service.ts
+│   │   ├── jwt.strategy.ts
+│   │   └── jwt-auth.guard.ts
+│   ├── order/                  # Module quản lý đơn hàng & thanh toán
+│   │   ├── dto/                # CreateOrderDto, OrderItemDto
+│   │   ├── order.controller.ts
+│   │   ├── order.module.ts
+│   │   ├── order.repository.ts # Repository Pattern giao tiếp Prisma
+│   │   └── order.service.ts    # Tính tiền chống gian lận & xử lý nghiệp vụ
+│   ├── prisma/                 # Module kết nối Prisma ORM toàn cục (@Global)
+│   │   ├── prisma.module.ts
+│   │   └── prisma.service.ts
+│   └── product/                # Module quản lý sản phẩm
+│       ├── dto/                # CreateProductDto
+│       ├── product.controller.ts
+│       ├── product.module.ts
+│       └── product.service.ts
+├── .env.example                # File mẫu biến môi trường (cam kết lên Git)
+├── package.json
+└── tsconfig.json
+```
